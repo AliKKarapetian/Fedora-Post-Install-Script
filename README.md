@@ -22,13 +22,13 @@ Avant de commencer, assurez-vous d'avoir :
 **2.** Rendez le script exécutable :
 
 ```bash
-chmod +x mon_script.sh
+chmod +x main.sh
 ```
 
 **3.** Lancez le script avec les droits administrateur :
 
 ```bash
-sudo ./mon_script.sh
+sudo ./main.sh
 ```
 
 ---
