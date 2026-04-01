@@ -1,9 +1,9 @@
 # --- Navigateur Brave (Nécessite d'ajouter son dépôt officiel) ---
 # Ajout de la clé et du dépôt
-# Exemple : REPO: <Le lien de votre .repo>
+# Exemple : REPO: <Le lien de votre .repo/rpm>
 
-#https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://#mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-
+REPO:https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+REPO:https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
 REPO:https://packages.microsoft.com/yumrepos/vscode/config.repo
 
 # --- Boutique/Discover ---
@@ -43,6 +43,14 @@ code
 
 # --- Police ---
 mscorefonts2
+
+
+rpmfusion-free-release-tainted
+rpmfusion-nonfree-release-tainted
+
+
+dnf install VirtualBox
+
 
 # Logiciels Manuels / Flatpak
 FLATPAK:com.teamspeak.TeamSpeak

@@ -83,7 +83,7 @@ if [[ "$Drive" == "1" ]]; then
             mokutil --import "$Key_Nvidia"
         fi
     fi
-    dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-libs.i686 nvidia-vaapi-driver
+    dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-libs.i686 libva-vdpau-driver libva-utils
     echo "Installation NVIDIA terminée !"
 
 elif [[ "$Drive" == "2" ]]; then
