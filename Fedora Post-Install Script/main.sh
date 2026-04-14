@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# --- 1. VÉRIFICATION DES DROITS ROOT ---
-if [ "$EUID" -ne 0 ]; then
-  echo "Veuillez lancer ce script avec sudo (ex: sudo ./mon_script.sh)"
-  exit
-fi
-
 Key_Nvidia="/etc/pki/akmods/certs/public_key.der"
 
 echo "========================================="
@@ -55,8 +49,8 @@ echo -e "\nVoulez-vous lancer la mise à jour du système/Flatpak ?"
 read -p "(y/N) " choix
 
 if [[ "$choix" == "y" || "$choix" == "Y" ]]; then
-    dnf upgrade --refresh -y
-    flatpak update -y
+    sudo dnf upgrade --refresh -y
+    sudo flatpak update -y
 else
     echo "Mise à jour annulée."
 fi
@@ -77,61 +71,32 @@ if [[ "$Drive" == "1" ]]; then
             echo "Succès : La clé a bien été trouvée !"
         else
             echo "Création de la clé de validation..."
-            dnf install akmods mokutil -y
-            kmodgenca -a
+            sudo dnf install akmods mokutil -y
+            sudo kmodgenca -a
             echo "ATTENTION : Le terminal va vous demander de créer un mot de passe."
-            mokutil --import "$Key_Nvidia"
+            sudo mokutil --import "$Key_Nvidia"
         fi
     fi
-    dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-libs.i686 libva-vdpau-driver libva-utils
+    sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-libs.i686 libva-vdpau-driver libva-utils
     echo "Installation NVIDIA terminée !"
 
 elif [[ "$Drive" == "2" ]]; then
     echo "Lancement de l'installation des pilotes AMD..."
-    dnf install mesa-vulkan-drivers vulkan-loader radeontop -y
-    dnf swap mesa-va-drivers mesa-va-drivers-freeworld -y
-    dnf swap mesa-vdpau-drivers mesa-vdpau-drivers-freeworld -y
+    sudo dnf install mesa-vulkan-drivers vulkan-loader radeontop -y
+    sudo dnf swap mesa-va-drivers mesa-va-drivers-freeworld -y
+    sudo dnf swap mesa-vdpau-drivers mesa-vdpau-drivers-freeworld -y
     echo "Terminé ! Les composants AMD sont à jour."
 
 else
     echo "Installation des pilotes graphiques ignorée."
 fi
 
-# --- 4. INSTALLATION DU CUSTOM SHELL (SYNTH SHELL) ---
-echo -e "\n========================================="
-echo "Voulez-vous installer le custom shell (Synth Shell) ?"
-read -p "(y/N) " Custom_Shell
-
-# Ajout du $ devant la variable pour bien lire la réponse de l'utilisateur
-if [[ "$Custom_Shell" == "y" || "$Custom_Shell" == "Y" ]]; then
-    
-    # 1. Installation des polices obligatoires pour les symboles géométriques
-    echo "Installation des polices Powerline requises"
-    dnf install powerline-fonts -y
-    
-    # 2. Téléchargement du code source
-    echo "Téléchargement de Synth Shell"
-    git clone --recursive https://github.com/andresgongora/synth-shell.git
-    
-    # 3. Lancement de l'installation
-    echo "Lancement du script d'installation"
-    cd synth-shell
-    chmod +x setup.sh
-    ./setup.sh
-    
-    # (Optionnel) Revenir au dossier parent une fois terminé
-    cd .. 
-else
-    echo "Installation du custom shell ignorée."
-fi
-
-
 # --- 5. INSTALLATION DES DÉPÔTS D'OFFICE (RPMFusion) ---
 echo -e "\n========================================="
 echo "Installation automatique des dépôts RPMFusion..."
 echo "(Nécessaire pour les codecs, Steam, Discord, etc.)"
-dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm -y
-dnf install https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
+sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm -y
+sudo dnf install https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
 echo "Dépôts RPMFusion installés !"
 
 
@@ -174,7 +139,7 @@ if [[ "$Paquet_RPM" == "y" || "$Paquet_RPM" == "Y" ]]; then
                     echo "  [SKIP] Dépôt déjà présent : $NOM_FICHIER_REPO"
                 else
                     echo "  [AJOUT] Nouveau dépôt : $URL_DEPOT"
-                    dnf config-manager addrepo --from-repofile="$URL_DEPOT"
+                    sudo dnf config-manager addrepo --from-repofile="$URL_DEPOT"
                 fi
 
             # 3. Gestion des Flatpaks
@@ -199,7 +164,7 @@ if [[ "$Paquet_RPM" == "y" || "$Paquet_RPM" == "Y" ]]; then
         # --- INSTALLATION DNF ---
         if [[ -n "$LISTE_PAQUETS" ]]; then
             echo -e "\nInstallation des paquets DNF manquants : $LISTE_PAQUETS"
-            dnf install $LISTE_PAQUETS -y --skip-unavailable
+            sudo dnf install $LISTE_PAQUETS -y --skip-unavailable
 
             for PKG in $LISTE_PAQUETS; do
                 if rpm -q "$PKG" &>/dev/null; then
@@ -213,8 +178,8 @@ if [[ "$Paquet_RPM" == "y" || "$Paquet_RPM" == "Y" ]]; then
         # --- INSTALLATION FLATPAK ---
         if [[ -n "$LISTE_FLATPAKS" ]]; then
             echo -e "\nInstallation des Flatpaks manquants : $LISTE_FLATPAKS"
-            flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-            flatpak install flathub $LISTE_FLATPAKS -y
+            sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+            sudo flatpak install flathub $LISTE_FLATPAKS -y
 
             for FP in $LISTE_FLATPAKS; do
                 if flatpak info "$FP" &>/dev/null; then
@@ -224,6 +189,35 @@ if [[ "$Paquet_RPM" == "y" || "$Paquet_RPM" == "Y" ]]; then
                 fi
             done
         fi
+
+# --- 4. INSTALLATION DU CUSTOM SHELL (SYNTH SHELL) ---
+echo -e "\n========================================="
+echo "Voulez-vous installer le custom shell (Synth Shell) ?"
+read -p "(y/N) " Custom_Shell
+
+# Ajout du $ devant la variable pour bien lire la réponse de l'utilisateur
+if [[ "$Custom_Shell" == "y" || "$Custom_Shell" == "Y" ]]; then
+    
+    # 1. Installation des polices obligatoires pour les symboles géométriques
+    echo "Installation des polices Powerline requises"
+    sudo dnf install powerline-fonts -y
+    
+    # 2. Téléchargement du code source
+    echo "Téléchargement de Synth Shell"
+    git clone --recursive https://github.com/andresgongora/synth-shell.git
+    
+    # 3. Lancement de l'installation
+    echo "Lancement du script d'installation"
+    cd synth-shell
+    chmod +x setup.sh
+    ./setup.sh
+    
+    # (Optionnel) Revenir au dossier parent une fois terminé
+    cd .. 
+    sudo rm -rf synth-shell
+else
+    echo "Installation du custom shell ignorée."
+fi
 
         # --- ÉTAPE DE LOG ---
         echo -e "\n====================================="

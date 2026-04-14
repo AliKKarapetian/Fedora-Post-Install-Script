@@ -40,7 +40,7 @@ discord
 code
 
 # --- Police ---
-mscorefonts2
+#mscorefonts2
 
 # --- Dépôts Tainted (Pour lire certains DVD/Codecs propriétaires) ---
 rpmfusion-free-release-tainted
