@@ -1,91 +1,241 @@
-# 🚀 Fedora Post-Install Script
+# 🖥️ Post-Install Fedora 43 — `main.sh`
 
-Ce script automatise la configuration de votre système Fedora après une installation fraîche. Il s'occupe des mises à jour, des pilotes graphiques et de l'installation de vos logiciels favoris.
+Script de post-installation automatisé pour **Fedora 43**.  
+Il configure le système, installe les pilotes, les dépôts et les paquets en une seule exécution.
+
+> ℹ️ Développé et testé sur **KDE Plasma**, mais le script est compatible avec
+> n'importe quel environnement graphique (GNOME, XFCE, Cinnamon, i3…).  
+> Seul le fichier `Paquet_RPM.txt` est à adapter selon votre bureau — certains
+> paquets comme `plasma-discover-packagekit` sont spécifiques à KDE.
 
 ---
 
 ## 📋 Prérequis
 
-Avant de commencer, assurez-vous d'avoir :
-
-- Téléchargé les deux fichiers dans le **même dossier** :
-  - `mon_script.sh` — le script principal
-  - `Paquet_RPM.txt` — la liste de vos logiciels
-- Une **connexion internet** active
+- Fedora 43 (tout environnement graphique)
+- Connexion internet active
+- Droits `sudo` disponibles
+- Les deux fichiers dans le **même dossier** :
+  - `main.sh`
+  - `Paquet_RPM.txt`
 
 ---
 
-## 🛠️ Comment l'utiliser ?
-
-**1.** Ouvrez un terminal dans le dossier où se trouvent les fichiers.
-
-**2.** Rendez le script exécutable :
+## 🚀 Utilisation
 
 ```bash
+# Rendre le script exécutable
 chmod +x main.sh
+
+# Lancer le script
+./main.sh
 ```
 
-**3.** Lancez le script avec les droits administrateur :
+> Le script est interactif : chaque étape demande une confirmation avant d'agir.
 
-```bash
-sudo ./main.sh
+---
+
+## 🔧 Étapes du script
+
+### 1. Informations système
+
+Affichée automatiquement au démarrage, sans interaction requise.
+
+```
+OS       → Fedora Linux 43 (KDE Plasma)
+│ Kernel  → 6.x.x-xxx.fc43.x86_64
+│ Uptime  → 2 minutes
+└ Session → wayland
+
+Secure Boot → Activé
+└ TPM       → Actif — version TPM 2
+```
+
+Le statut du **Secure Boot** (`SB_ACTIVE`) est détecté ici et utilisé
+automatiquement à l'étape NVIDIA pour gérer la clé MOK.
+
+---
+
+### 2. Dépôts RPMFusion
+
+Installation automatique des dépôts **RPMFusion Free** et **NonFree**,
+nécessaires pour les codecs, Steam, Discord, VirtualBox, etc.
+
+- Si les dépôts sont déjà présents → ignorés (`SKIP`)
+- Si absents → installés silencieusement
+
+```
+│ RPMFusion Free    → déjà installé, ignoré
+└ RPMFusion NonFree → installation en cours…
 ```
 
 ---
 
-## 🔍 Ce que fait le script
+### 3. Mise à jour du système
 
-### 1. Diagnostic Système
+```
+? Lancer la mise à jour ? [y/N]
+```
 
-Le script affiche d'abord un résumé de votre machine : version de Fedora, type de session (Wayland/X11), et état de sécurité (Secure Boot et TPM).
-
-### 2. Mise à jour
-
-Il vous propose de mettre à jour tous les paquets du système (DNF) ainsi que les applications Flatpak.
-
-### 3. Pilotes Graphiques (NVIDIA ou AMD)
-
-- **NVIDIA** : Installe les pilotes officiels, CUDA (pour le calcul) et les bibliothèques 32-bits (pour les jeux).
-  > 💡 Si votre Secure Boot est activé, le script créera automatiquement une clé de signature pour que les pilotes fonctionnent.
-
-- **AMD** : Installe les pilotes Vulkan et active l'accélération matérielle complète (codecs vidéo freeworld).
-
-### 4. Installation de logiciels (via `Paquet_RPM.txt`)
-
-Le script lit votre fichier texte et installe intelligemment :
-
-| Type | Préfixe | Exemple |
-|------|---------|---------|
-| Dépôts | `REPO:` | VS Code, Brave |
-| Applications isolées | `FLATPAK:` | TeamSpeak |
-| Paquets classiques | *(aucun)* | VLC, Steam, Discord, Codecs… |
-
-> ✅ **Intelligence du script** : Si un logiciel ou un dépôt est déjà présent, le script le détecte et passe au suivant pour ne pas perdre de temps.
+| Réponse | Action |
+|---------|--------|
+| `y` | `dnf upgrade --refresh` + `flatpak update` |
+| `N` | Étape ignorée |
 
 ---
 
-## 📝 Suivi (Logs)
+### 4. Pilotes graphiques
 
-À la fin de l'exécution, un fichier **`Historique_Installations.log`** est créé. Vous pouvez l'ouvrir pour vérifier :
+```
+│ 1 → NVIDIA
+│ 2 → AMD
+└ * → Passer
+```
 
-- Quels logiciels ont été installés avec succès
-- S'il y a eu des erreurs (ex : paquet introuvable)
+#### Option 1 — NVIDIA
+
+> ✅ Ces pilotes sont les pilotes **propriétaires modernes** fournis par RPMFusion.
+> Ils sont compatibles avec les cartes **RTX 3000 (Ampere) jusqu'aux dernières RTX 5000 (Blackwell)**,
+> ainsi que les séries GTX récentes. Pour les très anciennes cartes (GTX 900 et antérieures),
+> des paquets spécifiques peuvent être nécessaires.
+
+Installe les paquets :
+- `akmod-nvidia`
+- `xorg-x11-drv-nvidia-cuda`
+- `xorg-x11-drv-nvidia-libs.i686`
+- `libva-vdpau-driver` / `libva-utils`
+
+**Gestion automatique du Secure Boot :**  
+Si le Secure Boot est actif, le script vérifie si la clé MOK
+`/etc/pki/akmods/certs/public_key.der` est déjà présente.
+
+| Situation | Action |
+|-----------|--------|
+| Clé présente | Ignorée, installation continue |
+| Clé absente | `kmodgenca -a` + `mokutil --import` (mot de passe demandé) |
+
+> ⚠️ Si une clé MOK est créée, un **redémarrage** sera nécessaire pour
+> l'enrôler via l'interface UEFI avant que les modules NVIDIA se chargent.
+
+#### Option 2 — AMD
+
+> ⚠️ **Non testé** — Cette option n'a pas encore été validée sur une machine AMD.
+> Les commandes sont basées sur la documentation RPMFusion et devraient fonctionner,
+> mais utilisez-la avec précaution et vérifiez le résultat manuellement.
+
+Installe et effectue les swaps freeworld :
+- `mesa-vulkan-drivers`, `vulkan-loader`, `radeontop`
+- `mesa-va-drivers` → `mesa-va-drivers-freeworld`
+- `mesa-vdpau-drivers` → `mesa-vdpau-drivers-freeworld`
 
 ---
 
-## ⚠️ Attention — Secure Boot & NVIDIA
+### 5. Installation des paquets (`Paquet_RPM.txt`)
 
-Si vous installez les pilotes NVIDIA avec le Secure Boot activé, le script vous demandera de créer un **mot de passe court** (ex : `1234`).
+```
+? Lancer l'installation des paquets ? [y/N]
+```
 
-Au prochain redémarrage, un écran bleu appelé **"MOK Management"** apparaîtra. Suivez ces étapes :
+Le script lit `Paquet_RPM.txt` ligne par ligne et trie les paquets en trois catégories :
 
-1. Choisissez **Enroll MOK**
-2. Choisissez **Continue** puis **Yes**
-3. Entrez le mot de passe créé pendant le script
-4. **Redémarrez** — vos pilotes seront alors actifs
+| Préfixe | Type | Exemple |
+|---------|------|---------|
+| `REPO:` | Dépôt distant `.repo` | `REPO:https://...config.repo` |
+| `FLATPAK:` | Application Flatpak | `FLATPAK:com.teamspeak.TeamSpeak` |
+| *(aucun)* | Paquet DNF standard | `vlc`, `steam`, `code` |
+
+**Pendant l'analyse**, chaque paquet affiche son statut :
+
+| Statut | Signification |
+|--------|---------------|
+| `SKIP` | Déjà installé, ignoré |
+| `ATTENTE` | Absent, sera installé |
+
+**Après l'installation**, le résultat est affiché et enregistré :
+
+| Statut | Signification |
+|--------|---------------|
+| `OK` | Installation réussie |
+| `ÉCHEC` | Paquet introuvable ou erreur |
+
+Un fichier **`Historique_Installations.log`** est généré dans le même dossier :
+
+```
+=====================================
+Date d'exécution : 2025-04-15 14:32:01
+[SUCCÈS] Installés : vlc gimp htop steam ...
+[ERREUR] Échecs    : discord
+```
 
 ---
 
-## 📄 Personnalisation
+### 6. Synth Shell
 
-Vous pouvez modifier la liste des logiciels à installer en éditant simplement le fichier **`Paquet_RPM.txt`** avant de lancer le script.
+```
+? Installer Synth Shell ? [y/N]
+```
+
+Installe le prompt personnalisé [Synth Shell](https://github.com/andresgongora/synth-shell) :
+
+1. Installation des polices **Powerline** (`powerline-fonts`)
+2. Clonage du dépôt GitHub
+3. Exécution du script `setup.sh` (interactif — choix du thème)
+4. Suppression du dossier temporaire
+
+> ℹ️ Le script `setup.sh` de Synth Shell est **interactif** :
+> il posera des questions sur les composants à activer.
+
+---
+
+## 📄 Format de `Paquet_RPM.txt`
+
+> ℹ️ Le fichier fourni est configuré pour **KDE Plasma**. Si vous utilisez un autre
+> environnement graphique, adaptez la section *Boutique/Discover* et retirez les
+> paquets spécifiques à KDE (`plasma-discover-packagekit`, `appstream-data`…)
+> pour les remplacer par les équivalents de votre bureau.
+
+```text
+# Ceci est un commentaire — ignoré par le script
+
+# Dépôt externe
+REPO:https://packages.microsoft.com/yumrepos/vscode/config.repo
+
+# Paquets DNF standard
+vlc
+gimp
+htop
+
+# Flatpak
+FLATPAK:com.teamspeak.TeamSpeak
+```
+
+**Règles :**
+- Les lignes commençant par `#` sont ignorées
+- Les lignes vides sont ignorées
+- Pas d'espace autour des `:` pour `REPO:` et `FLATPAK:`
+- Un paquet par ligne
+
+---
+
+## 📁 Structure des fichiers
+
+```
+📂 dossier/
+├── main.sh                      ← script principal
+├── Paquet_RPM.txt               ← liste des paquets
+└── Historique_Installations.log ← généré après installation
+```
+
+---
+
+## ⚠️ Notes importantes
+
+- Toutes les commandes `dnf` et `flatpak` s'exécutent en **mode silencieux**
+  (`&>/dev/null`) — seuls les statuts finaux sont affichés.
+- Le script nécessite `mokutil` et `openssl` pour la gestion Secure Boot NVIDIA
+  (installés automatiquement si absents).
+- Les variables de couleur (`$c`, `$g`, `$r`…) sont globales et disponibles
+  dans toutes les fonctions.
+- Développé et testé sur **Fedora 43 KDE Plasma** avec Bash 5.x — compatible avec tout autre environnement graphique Fedora moyennant adaptation du `Paquet_RPM.txt`.
+- Les pilotes NVIDIA sont les pilotes **propriétaires modernes** (akmod) — compatibles RTX 3000 et supérieur. Non testé sur GTX ancienne génération.
+- L'option AMD GPU **n'a pas été testée** — à utiliser avec précaution.
