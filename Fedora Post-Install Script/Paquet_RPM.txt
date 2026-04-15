@@ -49,6 +49,7 @@ rpmfusion-nonfree-release-tainted
 # --- Virtualisation ---
 VirtualBox
 
+git
 
 # Logiciels Manuels / Flatpak
 FLATPAK:com.teamspeak.TeamSpeak
